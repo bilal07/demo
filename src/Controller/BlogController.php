@@ -3,10 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\Article;
+use App\Form\ArticleType;
 use App\Repository\ArticleRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BlogController extends AbstractController
 {
@@ -33,6 +36,41 @@ class BlogController extends AbstractController
 
     /**
      * Undocumented function
+     * @Route("/blog/new", name="blog_create")
+     * @Route("/blog/{id}/edit", name="blog_edit")
+     * @return void
+     */
+    public function form(Article $article = null, Request $request, EntityManagerInterface $manager) {
+        
+        if(!$article){
+            $article = new Article();
+        }
+        
+        /*$form = $this->createFormBuilder($article)
+                    ->add('title')
+                    ->add('content')
+                    ->add('image')
+                    ->getForm();*/
+        $form = $this->createForm(ArticleType::class, $article);                    
+
+        $form->handleRequest($request); 
+
+        if($form->isSubmitted() && $form->isValid()){
+            if(!$article->getId()){
+                $article->setCreatedAt(new \DateTime());
+            }
+            $manager->persist($article);
+            $manager->flush();
+            return $this->redirectToRoute('blog_show',['id' => $article->getId()]);
+        }                  
+        return $this->render('blog/create.html.twig',[
+            'formArticle' => $form->createView(),
+            'editMode' => $article->getId() !==null
+        ]);
+    }
+
+    /**
+     * Undocumented function
      * @Route("/blog/{id}", name="blog_show")
      * @return void
      */
@@ -41,4 +79,6 @@ class BlogController extends AbstractController
             'article' => $article,
         ]);
     }
+
+    
 }
